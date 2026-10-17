@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="App 後台">
+<meta name="theme-color" content="#faf9f6">
+<title>App 統一後台</title>
+<style>
+  :root{--gold:#B09A78;--ink:#2A3448;--text:#3a3326;--text2:#6b5d48;--text3:#9a9a9a;--line:#e7e1d6;--bg:#faf9f6;--card:#fff;--good:#5a9b6b;--warn:#c98a3a;--bad:#c0504e}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 16px 80px}
+  @media (max-width:520px){
+    .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{flex:none}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .card{padding:13px 14px} .card .v{font-size:22px} .card .v.small{font-size:17px}
+    .frow .lbl{width:84px;font-size:12px} .frow .num{width:92px}
+  }
+  h1{font-size:20px;letter-spacing:1px;color:var(--ink);margin-bottom:2px}
+  .sub{font-size:12px;color:var(--text3)}
+  input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;color:var(--text);background:#fbf9f4;outline:none}
+  input:focus{border-color:var(--gold)}
+  button{cursor:pointer;font-family:inherit}
+  .btn{background:linear-gradient(135deg,#c4b8a4,#728A98,#2A3448);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;letter-spacing:1px}
+  .btn-ghost{background:none;border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:6px 14px;font-size:12px}
+  .gate{max-width:360px;margin:60px auto;text-align:center}
+  .gate p{font-size:13px;color:var(--text2);margin:14px 0}
+  .err{color:var(--bad);font-size:12px;min-height:16px;margin-top:8px}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+  .stamp{font-size:11px;color:var(--text3)}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .tab{background:none;border:1px solid var(--line);color:var(--text2);border-radius:20px;padding:6px 15px;font-size:13px;letter-spacing:.5px}
+  .tab.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--text3)}
+  .tab .dot.ok{background:var(--good)} .tab .dot.warn{background:var(--warn)} .tab .dot.bad{background:var(--bad)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .card .k{font-size:12px;color:var(--text3);letter-spacing:.5px;margin-bottom:6px}
+  .card .v{font-size:28px;font-weight:700;color:var(--ink);letter-spacing:1px}
+  .card .v.small{font-size:20px}
+  .card .n{font-size:11px;color:var(--text2);margin-top:4px}
+  .sect{font-size:13px;font-weight:600;color:var(--gold);letter-spacing:1px;margin:24px 0 10px}
+
+  /* 總覽卡 */
+  .ov{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .ovcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;transition:border-color .15s}
+  .ovcard:hover{border-color:var(--gold)}
+  .ovcard .name{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .ovcard .big{font-size:32px;font-weight:700;color:var(--ink)}
+  .ovcard .big small{font-size:12px;font-weight:400;color:var(--text3);letter-spacing:.5px;margin-left:6px}
+  .ovcard .lines{margin-top:10px;font-size:12px;color:var(--text2);line-height:1.9}
+  .ovcard .lines b{color:var(--ink)}
+  .status{font-size:11px;font-weight:400;padding:2px 10px;border-radius:20px}
+  .status.ok{background:#e7f0e9;color:var(--good)} .status.warn{background:#f6ecdc;color:var(--warn)}
+  .status.bad{background:#f7e6e5;color:var(--bad)} .status.na{background:#eee9e0;color:#8a7f6c}
+
+  .funnel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 16px 16px}
+  .frow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .frow:last-child{border-bottom:none}
+  .frow .lbl{width:120px;font-size:13px;color:var(--text)}
+  .frow .bar-wrap{flex:1;background:#f0ece4;border-radius:6px;height:22px;position:relative;overflow:hidden}
+  .frow .bar{height:100%;background:linear-gradient(90deg,#c4b8a4,#B09A78);border-radius:6px;min-width:2px;transition:width .4s}
+  .frow .num{width:112px;text-align:right;font-size:13px;color:var(--ink);font-weight:600}
+  .frow .num small{font-weight:400;color:var(--text3);font-size:11px}
+  .hint{font-size:11px;color:var(--text3);margin-top:10px;line-height:1.7}
+
+  .tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:560px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:#f6f2ea;color:var(--text2);font-weight:600;letter-spacing:.3px;position:sticky;top:0}
+  td.main{white-space:normal;word-break:break-all;min-width:160px;color:var(--ink)}
+  td.num{text-align:right;color:var(--text2)}
+  .pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .pill.free{background:#eee9e0;color:#8a7f6c}
+  .pill.personal,.pill.comp{background:#e3eef0;color:#3c7d86}
+  .pill.studio,.pill.premium{background:#f3e6d3;color:#a5721f}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:5px 13px;font-size:12px;color:var(--text2)}
+  .chip b{color:var(--ink)}
+  .setup{background:#fdf6ea;border:1px solid #ecd9b4;border-radius:14px;padding:16px 18px;font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:18px}
+  .setup code{background:#f3ecdd;border-radius:6px;padding:1px 7px;font-size:12px;color:var(--ink)}
+  .setup a{color:var(--gold)}
+  .dau{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px 8px;margin-bottom:22px}
+  .dau .cols{display:flex;align-items:flex-end;gap:3px;height:90px}
+  .dau .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+  .dau .col i{display:block;background:#c4b8a4;border-radius:3px 3px 0 0;min-height:1px}
+  .dau .col i.nw{background:var(--gold);border-radius:0}
+  .dau .axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-top:6px}
+  td.lo{color:var(--bad)} td.mid{color:var(--warn)} td.hi{color:var(--good)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 密語門 -->
+  <div id="gate" class="gate">
+    <h1>App 統一後台</h1>
+    <p>輸入密語解鎖（與靈耀賣家後台同一組）<br><span style="font-size:11px;color:var(--text3)">新 app 首次解鎖會自動綁定這組密語</span></p>
+    <input id="secretInput" type="password" placeholder="密語" autocomplete="off"
+           onkeydown="if(event.key==='Enter')unlock()">
+    <div class="err" id="gerr"></div>
+    <button class="btn" style="margin-top:12px;width:100%" onclick="unlock()">解鎖</button>
+  </div>
+
+  <!-- 儀表板 -->
+  <div id="dash" style="display:none">
+    <div class="toolbar">
+      <div>
+        <h1>App 統一後台</h1>
+        <div class="stamp" id="stamp"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-ghost" onclick="loadAll()">重新整理</button>
+        <button class="btn-ghost" onclick="lock()">鎖定</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="view"></div>
+  </div>
+
+</div>
+
+<script>
+// ── App 設定 ─────────────────────────────────────────────
+var APPS = [
+  { id:'lingyo',   name:'靈耀',  url:'https://xgipwimgthjzgovpazsr.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnaXB3aW1ndGhqemdvdnBhenNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzM0NTAsImV4cCI6MjA4OTE0OTQ1MH0.vvcxd19IsoN3iSdYSknRJcC3-NiRmLnicnRx6s0ogHo',
+    hasUsers:true, provision:false, eventFunnel:true,
+    sql:'（lingyo 已裝好 026_app_stats.sql）', ref:'xgipwimgthjzgovpazsr' },
+  { id:'juanjuan', name:'卷卷',  url:'https://jgbglzyykkeoaiwankek.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnYmdsenl5a2tlb2Fpd2Fua2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTg0NjIsImV4cCI6MjA5NTE3NDQ2Mn0.ik195_kLbOg72VM1-5s9rLWZ-RUcXLHrl6UFjJ06eLg',
+    hasUsers:true, provision:true,
+    sql:'~/Documents/juanjuan/supabase/app_stats.sql', ref:'jgbglzyykkeoaiwankek' },
+  { id:'mingdun',  name:'明盾',  url:'https://fzxdlmfkqgdmthphzlee.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6eGRsbWZrcWdkbXRocGh6bGVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MjM5NzksImV4cCI6MjA5NDM5OTk3OX0.axoOawMZf9d4zZuo99HONkE2q0XtP_Sc6APXVvNonRY',
+    hasUsers:true, provision:true,
+    sql:'~/Documents/mingdun/supabase/app_stats.sql', ref:'fzxdlmfkqgdmthphzlee' },
+  { id:'rally',    name:'Rally', url:'https://ifzutbbooczubxvcvukq.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmenV0YmJvb2N6dWJ4dmN2dWtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODM3MDAsImV4cCI6MjA5NjU1OTcwMH0.gDJnNTt7vmBzUCnYYTKVLnEGZ7mqGE4xBLgr19tbyeg',
+    hasUsers:true, provision:true,
+    sql:'~/Documents/rally/supabase/migrations/0003_app_stats.sql', ref:'ifzutbbooczubxvcvukq' },
+  { id:'caichong', name:'菜蟲',  url:'https://xbmknfwetpndrjxegdfg.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWtuZndldHBuZHJqeGVnZGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NzQwOTksImV4cCI6MjA5NTM1MDA5OX0.ae4Np-x69Lz3J862KLW-1F0zHN1h3myPiViwaJ9WxCk',
+    hasUsers:false, provision:true, extra:'app_days', engagement:true,
+    sql:'（已自動裝好 002_app_stats.sql）', ref:'xbmknfwetpndrjxegdfg' },
+  { id:'mingmu',   name:'明目',  local:true,
+    ov:'純本地 App（AsyncStorage），無雲端後台<br>下載/留存請看 App Store Connect' },
+  { id:'wishcade', name:'宇宙小瑪莉', local:true, ascId:'6817854015',
+    ov:'許願轉盤 · 廣告＋US$2.99 終身買斷<br>無後端，看 App Store Connect／AdMob',
+    body:'宇宙小瑪莉（Wishcade）是<b>純本地 App</b>：許願簿、連續天數、自訂轉盤都存在裝置 AsyncStorage；'+
+      '朋友同樂的轉盤是壓進分享連結的代碼，<b>沒有後端</b>，所以這裡沒有即時數據。<br><br>要看的數字在這些地方：<br>'+
+      '・下載量／留存／曝光 → App Store Connect「App 分析」<br>'+
+      '・買斷營收（<code>com.sukastudio.wishcade.pro</code>，US$2.99）→ App Store Connect「銷售和趨勢」<br>'+
+      '・廣告收益（橫幅＋每 3 轉插頁）→ AdMob<br>'+
+      '・分享連結落地頁 → <code>yutoupenguin777.github.io/wishcade/b/</code>',
+    links:[['App Store 頁面','https://apps.apple.com/app/id6817854015'],
+           ['App Store Connect','https://appstoreconnect.apple.com/apps/6817854015/distribution'],
+           ['App 分析','https://appstoreconnect.apple.com/analytics/app/d30/6817854015/overview'],
+           ['銷售和趨勢','https://appstoreconnect.apple.com/trends'],
+           ['AdMob','https://admob.google.com/v2/apps/3792558237/overview']] },
+  { id:'shachiku', name:'社畜救星', local:true, ascId:'6816712272',
+    ov:'勞保低報健檢 · 全免費＋廣告（僅台灣）<br>無後端，看 App Store Connect／AdMob',
+    body:'社畜救星是<b>純本地 App</b>：健檢紀錄、發薪提醒、行動方案勾選都存在裝置上，計算全部在本機完成，'+
+      '<b>沒有後端</b>，所以這裡沒有即時數據。<br><br>要看的數字在這些地方：<br>'+
+      '・下載量／留存／曝光 → App Store Connect「App 分析」<br>'+
+      '・廣告收益（首頁＋結果頁橫幅）→ AdMob（2026-10-07 已連結 App Store）<br>'+
+      '・1.0.0 於 2026-10-07 上架；砍掉標準尚未訂<br><br>'+
+      '若之後想看「健檢完成率／被低報比例」，需要在 App 裡加匿名事件上報（device ping＋事件表），再回來擴充這頁。',
+    links:[['App Store 頁面','https://apps.apple.com/tw/app/id6816712272'],
+           ['App Store Connect','https://appstoreconnect.apple.com/apps/6816712272/distribution'],
+           ['App 分析','https://appstoreconnect.apple.com/analytics/app/d30/6816712272/overview'],
+           ['AdMob','https://admob.google.com/v2/apps/3306012076/overview']] }
+]
+
+var SECRET_KEY = 'adminhub_secret'
+var SECRET = localStorage.getItem(SECRET_KEY) || ''
+var S = {}          // S[appId] = {status:'ok'|'no_sql'|'locked'|'err', stats, users, days}
+var CUR = 'overview'
+
+// ── Supabase RPC ─────────────────────────────────────────
+async function rpc(app, fn, args){
+  var res
+  try{
+    res = await fetch(app.url + '/rest/v1/rpc/' + fn, {
+      method:'POST',
+      headers:{'apikey':app.key,'Authorization':'Bearer '+app.key,'Content-Type':'application/json'},
+      body:JSON.stringify(args)
+    })
+  }catch(e){
+    // 連 HTTP 都建立不起來（免費專案被暫停時就是長這樣）——要跟「有回應但出錯」分開看
+    var ne=new Error(e&&e.message||'network error'); ne.net=true; throw ne
+  }
+  if(!res.ok){
+    var t=''; try{t=await res.text()}catch(e){}
+    var err=new Error(t||('HTTP '+res.status)); err.status=res.status; throw err
+  }
+  return res.json()
+}
+
+async function loadApp(app, secret){
+  if(app.local){ S[app.id]={status:'na'}; return }
+  var st = { status:'ok' }
+  try{
+    st.stats = await rpc(app, 'app_stats', {p_secret: secret})
+  }catch(e){
+    if(e.net){ st.status='down' }
+    else if(e.status===404){ st.status='no_sql' }
+    else if(/not configured/i.test(e.message) && app.provision){
+      // 首次使用：自動把這組密語綁進去，再讀一次
+      try{
+        await rpc(app, 'stats_set_secret', {p_secret: secret})
+        st.stats = await rpc(app, 'app_stats', {p_secret: secret})
+      }catch(e2){ st.status='err'; st.msg=short(e2) }
+    }
+    // 只認「真的說了 unauthorized」的才算密語不符。PostgREST 把幾乎所有 SQL 執行期錯誤
+    // 都回 400，以前把 400 一律當成密語不符 → 缺表／欄位改名會被謊報成「密語不符」。
+    else if(/unauthorized/i.test(e.message) || e.status===401){ st.status='locked' }
+    else { st.status='err'; st.msg=short(e) }
+  }
+  if(st.status==='ok'){
+    try{
+      if(app.hasUsers) st.users = await rpc(app, 'app_users', {p_secret: secret})
+      if(app.extra)    st.days  = await rpc(app, app.extra,   {p_secret: secret})
+      // 028 把 app_reading_funnel（事件名寫死在 SQL）換成通用的 app_event_funnel 並 drop 掉舊的。
+      // 這裡曾經漏改，導致呼叫 404 → 靜靜掉進 catch → 畫面謊報「漏斗尚未啟用」。
+      if(app.eventFunnel) st.funnel = await rpc(app, 'app_event_funnel', {p_secret: secret})
+    }catch(e){ /* 名單失敗不擋整頁 */ }
+    // 獨立 try：005 還沒套用時 404，只讓留存區塊顯示安裝提示，不影響其他區塊
+    if(app.engagement){
+      try{ st.eng = await rpc(app, 'app_engagement', {p_secret: secret}) }
+      catch(e){ st.engErr = e.status===404 ? 'no_sql' : short(e) }
+    }
+  }
+  S[app.id] = st
+}
+
+function short(e){ var m=(e&&e.message)||''; try{m=JSON.parse(m).message||m}catch(x){}; return m.slice(0,120) }
+
+// ── 載入全部 ─────────────────────────────────────────────
+async function loadAll(){
+  document.getElementById('stamp').textContent = '載入中…'
+  await Promise.all(APPS.map(function(a){ return loadApp(a, SECRET) }))
+  document.getElementById('stamp').textContent = '更新於 ' + new Date().toLocaleString('zh-TW')
+  renderTabs(); render()
+}
+
+async function unlock(){
+  var v = document.getElementById('secretInput').value.trim()
+  if(!v) return
+  document.getElementById('gerr').textContent = '驗證中…'
+  await Promise.all(APPS.map(function(a){ return loadApp(a, v) }))
+  var anyOk = APPS.some(function(a){ return S[a.id] && S[a.id].status==='ok' })
+  if(!anyOk){
+    var anyLocked = APPS.some(function(a){ return S[a.id] && S[a.id].status==='locked' })
+    document.getElementById('gerr').textContent = anyLocked ? '密語錯誤' : '連線失敗，稍後再試'
+    return
+  }
+  SECRET = v; localStorage.setItem(SECRET_KEY, v)
+  document.getElementById('gate').style.display='none'
+  document.getElementById('dash').style.display='block'
+  document.getElementById('stamp').textContent = '更新於 ' + new Date().toLocaleString('zh-TW')
+  renderTabs(); render()
+}
+
+function lock(msg){
+  localStorage.removeItem(SECRET_KEY); SECRET=''
+  document.getElementById('dash').style.display='none'
+  document.getElementById('gate').style.display='block'
+  document.getElementById('secretInput').value=''
+  document.getElementById('gerr').textContent = msg || ''
+}
+
+// ── 工具 ─────────────────────────────────────────────────
+function fmt(n){ return (n==null?'–':Number(n).toLocaleString('en-US')) }
+function pct(a,b){ if(!b) return '0%'; return Math.round(a/b*1000)/10 + '%' }
+function fdate(d){ if(!d) return '–'; var x=new Date(d); return (x.getMonth()+1)+'/'+x.getDate()+' '+String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0') }
+function esc(s){ return String(s==null?'–':s).replace(/&/g,'&amp;').replace(/</g,'&lt;') }
+
+function funnelHTML(steps){
+  var base = steps.length ? steps[0][1]||0 : 0
+  return '<div class="funnel">' + steps.map(function(st){
+    var w = base ? Math.max(2, (st[1]||0)/base*100) : 2
+    return '<div class="frow"><div class="lbl">'+st[0]+'</div>'+
+           '<div class="bar-wrap"><div class="bar" style="width:'+w+'%"></div></div>'+
+           '<div class="num">'+fmt(st[1])+' <small>'+pct(st[1]||0,base)+'</small></div></div>'
+  }).join('') + '</div>'
+}
+function cardsHTML(cards){
+  return '<div class="grid">' + cards.map(function(c){
+    return '<div class="card"><div class="k">'+c[0]+'</div><div class="v'+(String(c[1]).length>7?' small':'')+'">'+c[1]+'</div>'+(c[2]?'<div class="n">'+c[2]+'</div>':'')+'</div>'
+  }).join('') + '</div>'
+}
+function statusPill(st){
+  if(!st) return '<span class="status warn">載入中</span>'
+  return {ok:'<span class="status ok">正常</span>',
+          no_sql:'<span class="status warn">未安裝 SQL</span>',
+          locked:'<span class="status bad">密語不符</span>',
+          down:'<span class="status bad">專案無回應</span>',
+          err:'<span class="status bad">連線異常</span>',
+          na:'<span class="status na">純本地</span>'}[st.status]
+}
+function setupHTML(app, st){
+  if(st.status==='down')
+    return '<div class="setup"><b>整個 Supabase 專案沒有回應</b>（連 HTTP 都建立不起來，不是密語或 SQL 的問題）。<br><br>'+
+      '最常見的原因是<b>免費方案專案被 Paused</b> —— 暫停時 Supabase 會連 DNS 記錄一起收掉，'+
+      '所以 <code>nslookup '+app.ref+'.supabase.co</code> 會是 NXDOMAIN。<b>這不代表專案被刪除</b>，資料（含備份）都還在。<br><br>'+
+      '到 <a href="https://supabase.com/dashboard/project/'+app.ref+'" target="_blank">Dashboard</a> 按 Resume project 即可復原。<br>'+
+      '注意這時 App 端（<code>.env</code> 的 SUPABASE_URL）也是全掛的，不只是這個後台。</div>'
+  if(st.status==='no_sql')
+    return '<div class="setup">這個專案還沒安裝統計 RPC。到 <a href="https://supabase.com/dashboard/project/'+app.ref+'/sql/new" target="_blank">Supabase SQL Editor</a> 貼上並執行：<br><code>'+esc(app.sql)+'</code><br>執行完回來按「重新整理」即可（密語會自動綁定）。</div>'
+  if(st.status==='locked')
+    return '<div class="setup">密語與這個專案已綁定的不同。若要重設，到 <a href="https://supabase.com/dashboard/project/'+app.ref+'/sql/new" target="_blank">SQL Editor</a> 跑：<br><code>delete from stats_config where id = 1;</code><br>再回來重新整理，會自動綁定目前這組密語。</div>'
+  if(st.status==='err')
+    return '<div class="setup">連線異常：'+esc(st.msg||'')+'</div>'
+  return ''
+}
+
+// ── Tabs ─────────────────────────────────────────────────
+function renderTabs(){
+  var t = [{id:'overview',name:'總覽'}].concat(APPS)
+  document.getElementById('tabs').innerHTML = t.map(function(a){
+    var dot=''
+    if(a.id!=='overview'){
+      var st=S[a.id], cls = !st?'':({ok:'ok',na:'',no_sql:'warn',locked:'bad',err:'bad',down:'bad'}[st.status]||'')
+      dot = '<span class="dot '+cls+'"></span>'
+    }
+    return '<button class="tab'+(CUR===a.id?' on':'')+'" onclick="go(\''+a.id+'\')">'+dot+a.name+'</button>'
+  }).join('')
+}
+function go(id){ CUR=id; renderTabs(); render() }
+
+// ── 各 App 畫面 ──────────────────────────────────────────
+function render(){
+  var v = document.getElementById('view')
+  if(CUR==='overview') return renderOverview(v)
+  var app = APPS.find(function(a){return a.id===CUR})
+  var st = S[CUR] || {}
+  if(app.local) return app.body ? renderLocal(v, app) : renderMingmu(v)
+  if(st.status!=='ok'){ v.innerHTML = setupHTML(app, st) || '<div class="setup">載入中…</div>'; return }
+  ({lingyo:renderLingyo, juanjuan:renderJuanjuan, mingdun:renderMingdun,
+    rally:renderRally, caichong:renderCaichong})[CUR](v, st)
+}
+
+// 總覽
+function renderOverview(v){
+  var html = '<div class="ov">'
+  APPS.forEach(function(a){
+    var st=S[a.id]||{}, s=st.stats||{}
+    var big='–', unit='', lines=''
+    if(a.id==='lingyo'){ big=fmt(s.total_users); unit='註冊'
+      lines='7 天新增 <b>+'+fmt(s.new_7d)+'</b> ｜ 7 天活躍 <b>'+fmt(s.active_7d)+'</b><br>付費 <b>'+fmt((s.paid_personal||0)+(s.paid_studio||0))+'</b>（個人 '+fmt(s.paid_personal)+'／Studio '+fmt(s.paid_studio)+'）' }
+    if(a.id==='juanjuan'){ big=fmt(s.total_users); unit='註冊'
+      lines='7 天新增 <b>+'+fmt(s.new_7d)+'</b> ｜ 7 天活躍 <b>'+fmt(s.active_7d)+'</b><br>做過測驗 <b>'+fmt(s.users_with_session)+'</b> ｜ Comp <b>'+fmt(s.comp_active)+'</b>' }
+    if(a.id==='mingdun'){ big=fmt(s.devices_total); unit='裝置'
+      lines='7 天新裝置 <b>+'+fmt(s.devices_new_7d)+'</b> ｜ 7 天出現 <b>'+fmt(s.devices_seen_7d)+'</b><br>家庭 <b>'+fmt(s.families_total)+'</b> ｜ 7 天警示 <b>'+fmt(s.alerts_7d)+'</b>' }
+    if(a.id==='rally'){ big=fmt(s.families_total); unit='家庭'
+      lines='7 天新增 <b>+'+fmt(s.families_new_7d)+'</b> ｜ 7 天整備 <b>'+fmt(s.bags_checked_7d)+'</b><br>Premium <b>'+fmt(s.premium_total)+'</b> ｜ 成員 <b>'+fmt(s.members_total)+'</b>' }
+    if(a.id==='caichong'){ big=fmt(s.total_rows); unit='筆行情'
+      lines='最新資料 <b>'+esc(s.latest_date)+'</b> ｜ 7 天進 <b>'+fmt(s.rows_7d)+'</b> 筆<br>裝置 <b>'+fmt(s.devices_total)+'</b> ｜ 提醒訂閱 <b>'+fmt(s.alerts_total)+'</b>' }
+    if(a.local){ big='—'; unit=''; lines=a.ov }
+    html += '<div class="ovcard" onclick="go(\''+a.id+'\')">'+
+      '<div class="name">'+a.name+statusPill(st)+'</div>'+
+      '<div class="big">'+big+'<small>'+unit+'</small></div>'+
+      '<div class="lines">'+lines+'</div></div>'
+  })
+  v.innerHTML = html + '</div>'
+}
+
+// 靈耀（與原 stats.html 相同視角）
+function renderLingyo(v, st){
+  var s=st.stats, total=s.total_users||0
+  var paid=(s.paid_personal||0)+(s.paid_studio||0)
+  var html = ''
+
+  // 匿名體驗漏斗（免登入也算的裝置數）
+  var f = st.funnel
+  if(f && f.events){
+    var ev  = f.events
+    var dev = function(k){ return ((ev[k]||{}).devices)||0 }
+    var d7  = function(k){ return ((ev[k]||{}).devices_7d)||0 }
+    var top = dev('app_open')
+    html += '<div class="sect">匿名體驗漏斗（裝置數，免登入也算）</div>' + cardsHTML([
+      ['打開 App（裝置）', fmt(top), '近 7 天 '+fmt(d7('app_open'))],
+      ['動手放珠（裝置）', fmt(dev('bead_placed')), '近 7 天 '+fmt(d7('bead_placed'))],
+      ['動手率', pct(dev('bead_placed'), top), '打開後真的開始做手環'],
+      ['看過分析（裝置）', fmt(dev('reading_generated')), '支線：DIY 頁的「我的能量」']
+    ])
+    // 主漏斗照產品真實路徑（bracelet-first）排，不是「先分析再做手環」——
+    // 實測放珠人數是分析人數的數倍，分析是支線，放到上面的卡片區看。
+    html += funnelHTML([
+      ['打開 App', top],
+      ['動手放珠', dev('bead_placed')],
+      ['按下儲存', dev('save_tapped')],
+      ['存下手環', dev('bracelet_saved')],
+      ['分享出去', dev('share_created')]
+    ]) + '<div class="hint">全部是<b>去重裝置數</b>（同一人換機或清資料會重複計）。「按下儲存 → 存下手環」中間掉的人，被下面三道關卡擋住了。</div>'
+    var blocked = [['沒有命盤','save_blocked_chart'],['沒有登入','save_blocked_login'],['需要付費','save_blocked_paid']]
+      .filter(function(b){ return dev(b[1]) })
+    if(blocked.length){
+      html += cardsHTML(blocked.map(function(b){
+        return ['擋下：'+b[0], fmt(dev(b[1])), '佔按下儲存的 '+pct(dev(b[1]), dev('save_tapped'))]
+      }))
+    }
+  } else {
+    html += '<div class="setup">匿名體驗漏斗讀不到。確認 lingyo 專案已套用 <code>028_event_funnel.sql</code>（它取代並 drop 了 027 的 <code>app_reading_funnel</code>）。</div>'
+  }
+
+  html += '<div class="sect">註冊與活躍</div>' + cardsHTML([
+    ['總註冊人數', fmt(total)],
+    ['近 7 天新註冊', '+'+fmt(s.new_7d), '近 30 天 +'+fmt(s.new_30d)],
+    ['近 7 天有登入', fmt(s.active_7d), '近 30 天 '+fmt(s.active_30d)],
+    ['7 天活躍率', pct(s.active_7d,total), '近 7 天登入 ÷ 總註冊']
+  ])
+  html += '<div class="sect">行為漏斗</div>' + funnelHTML([
+    ['註冊',total],['用過命盤',s.users_with_chart],['存過手環',s.users_with_bracelet],
+    ['分享過',s.users_shared],['付費',paid]
+  ])
+  html += '<div class="sect">付費</div>' + cardsHTML([
+    ['基本方案（有效）',fmt(s.paid_personal)],['高級 Studio（有效）',fmt(s.paid_studio)],
+    ['付費總數',fmt(paid)],['付費轉化率',pct(paid,total),'付費 ÷ 總註冊']
+  ])
+  html += '<div class="sect">內容總量</div>' + cardsHTML([
+    ['命盤總數',fmt(s.total_charts)],['手環總數',fmt(s.total_bracelets)],['分享總數',fmt(s.total_shares)],
+    ['客戶總數',fmt(s.total_clients)],['自訂珠總數',fmt(s.total_custom_beads)],['Studio 有建客戶',fmt(s.studio_with_clients)]
+  ])
+  var rows = st.users||[]
+  html += '<div class="sect">註冊名單（'+rows.length+' 人）</div><div class="tbl-wrap"><table><thead><tr>'+
+    '<th>Email</th><th>註冊</th><th>最近登入</th><th>方案</th><th style="text-align:right">命盤</th><th style="text-align:right">手環</th><th style="text-align:right">客戶</th></tr></thead><tbody>'+
+    (rows.length ? rows.map(function(u){
+      return '<tr><td class="main">'+esc(u.email)+'</td><td>'+fdate(u.created_at)+'</td><td>'+fdate(u.last_sign_in_at)+'</td>'+
+        '<td><span class="pill '+(u.plan||'free')+'">'+(u.plan||'free')+'</span></td>'+
+        '<td class="num">'+(u.charts||0)+'</td><td class="num">'+(u.bracelets||0)+'</td><td class="num">'+(u.clients||0)+'</td></tr>'
+    }).join('') : '<tr><td colspan="7" style="color:var(--text3)">目前沒有註冊用戶</td></tr>')+
+    '</tbody></table></div>'
+  v.innerHTML = html
+}
+
+// 卷卷
+function renderJuanjuan(v, st){
+  var s=st.stats, total=s.total_users||0
+  var html = '<div class="sect">註冊與活躍</div>' + cardsHTML([
+    ['總註冊人數', fmt(total)],
+    ['近 7 天新註冊', '+'+fmt(s.new_7d), '近 30 天 +'+fmt(s.new_30d)],
+    ['近 7 天有登入', fmt(s.active_7d), '近 30 天 '+fmt(s.active_30d)],
+    ['7 天活躍率', pct(s.active_7d,total)]
+  ])
+  html += '<div class="sect">行為漏斗</div>' + funnelHTML([
+    ['註冊',total],['做過測驗',s.users_with_session],['有錯題本',s.users_with_note],['Comp 解鎖',s.comp_active]
+  ]) + '<div class="hint">付費走 RevenueCat，資料庫只看得到 Comp（免費推廣）名單；實際營收請看 RevenueCat 後台。</div>'
+  html += '<div class="sect">刷題量</div>' + cardsHTML([
+    ['測驗總場次',fmt(s.total_sessions)],['近 7 天場次',fmt(s.sessions_7d)],
+    ['完成場次',fmt(s.finished_sessions),'完成率 '+pct(s.finished_sessions,s.total_sessions)],['錯題總數',fmt(s.total_notes)]
+  ])
+  var rows = st.users||[]
+  html += '<div class="sect">註冊名單（'+rows.length+' 人）</div><div class="tbl-wrap"><table><thead><tr>'+
+    '<th>Email</th><th>註冊</th><th>最近登入</th><th>方案</th><th style="text-align:right">測驗</th><th style="text-align:right">錯題</th></tr></thead><tbody>'+
+    (rows.length ? rows.map(function(u){
+      return '<tr><td class="main">'+esc(u.email)+'</td><td>'+fdate(u.created_at)+'</td><td>'+fdate(u.last_sign_in_at)+'</td>'+
+        '<td><span class="pill '+(u.plan||'free')+'">'+(u.plan||'free')+'</span></td>'+
+        '<td class="num">'+(u.sessions||0)+'</td><td class="num">'+(u.notes||0)+'</td></tr>'
+    }).join('') : '<tr><td colspan="6" style="color:var(--text3)">目前沒有註冊用戶</td></tr>')+
+    '</tbody></table></div>'
+  v.innerHTML = html
+}
+
+// 明盾
+function renderMingdun(v, st){
+  var s=st.stats
+  var html = '<div class="sect">裝置（≈ 安裝量）</div>' + cardsHTML([
+    ['裝置總數', fmt(s.devices_total)],
+    ['近 7 天新裝置', '+'+fmt(s.devices_new_7d), '近 30 天 +'+fmt(s.devices_new_30d)],
+    ['近 7 天有出現', fmt(s.devices_seen_7d), '近 30 天 '+fmt(s.devices_seen_30d)],
+    ['7 天活躍率', pct(s.devices_seen_7d, s.devices_total)]
+  ])
+  html += '<div class="sect">家庭鏈結漏斗</div>' + funnelHTML([
+    ['建立家庭',s.families_total],['有長輩加入',s.families_with_member],
+    ['設過安全號碼',s.families_with_safe],['用過晨安打卡',s.families_with_checkin]
+  ]) + '<div class="hint">近 7 天新家庭 +'+fmt(s.families_new_7d)+'（30 天 +'+fmt(s.families_new_30d)+'）｜長輩成員共 '+fmt(s.members_total)+' 人</div>'
+  html += '<div class="sect">防詐活動</div>' + cardsHTML([
+    ['掃描警示總數',fmt(s.alerts_total)],['近 7 天警示',fmt(s.alerts_7d)],
+    ['危險級警示',fmt(s.alerts_danger)],['安全號碼總數',fmt(s.safe_numbers_total)],
+    ['晨安打卡總數',fmt(s.checkins_total),'近 7 天 '+fmt(s.checkins_7d)],['已發布快訊',fmt(s.scam_published)]
+  ])
+  var rows = st.users||[]
+  html += '<div class="sect">家庭名單（'+rows.length+' 組）</div><div class="tbl-wrap"><table><thead><tr>'+
+    '<th>守護者</th><th>建立</th><th style="text-align:right">長輩</th><th style="text-align:right">安全號碼</th><th style="text-align:right">打卡</th><th style="text-align:right">警示</th></tr></thead><tbody>'+
+    (rows.length ? rows.map(function(u){
+      return '<tr><td class="main">'+esc(u.guardian_name)+'</td><td>'+fdate(u.created_at)+'</td>'+
+        '<td class="num">'+(u.members||0)+'</td><td class="num">'+(u.safe_numbers||0)+'</td>'+
+        '<td class="num">'+(u.checkins||0)+'</td><td class="num">'+(u.alerts||0)+'</td></tr>'
+    }).join('') : '<tr><td colspan="6" style="color:var(--text3)">目前沒有家庭</td></tr>')+
+    '</tbody></table></div>'
+  v.innerHTML = html
+}
+
+// Rally
+function renderRally(v, st){
+  var s=st.stats
+  var html = '<div class="sect">家庭</div>' + cardsHTML([
+    ['家庭總數', fmt(s.families_total)],
+    ['近 7 天新增', '+'+fmt(s.families_new_7d), '近 30 天 +'+fmt(s.families_new_30d)],
+    ['Premium', fmt(s.premium_total), '轉化率 '+pct(s.premium_total,s.families_total)],
+    ['成員總數', fmt(s.members_total)]
+  ])
+  html += '<div class="sect">整備漏斗</div>' + funnelHTML([
+    ['建立家庭',s.families_total],['有成員',s.families_with_member],
+    ['放過物品',s.families_with_items],['打包過',s.families_packed],['有避難計畫',s.families_with_plan]
+  ])
+  html += '<div class="sect">背包整備度</div>' + cardsHTML([
+    ['平均整備度', (s.avg_readiness==null?'–':s.avg_readiness+'%')],
+    ['近 7 天檢查過背包', fmt(s.bags_checked_7d), '共 '+fmt(s.bags_total)+' 個背包'],
+    ['物品總數', fmt(s.items_total)],
+    ['已打包', fmt(s.items_packed), '打包率 '+pct(s.items_packed,s.items_total)],
+    ['避難計畫回覆', fmt(s.plan_responses_total)]
+  ])
+  var rows = st.users||[]
+  html += '<div class="sect">家庭名單（'+rows.length+' 組）</div><div class="tbl-wrap"><table><thead><tr>'+
+    '<th>家庭</th><th>建立</th><th>方案</th><th style="text-align:right">成員</th><th style="text-align:right">物品</th><th style="text-align:right">已打包</th><th style="text-align:right">整備度</th></tr></thead><tbody>'+
+    (rows.length ? rows.map(function(u){
+      return '<tr><td class="main">'+esc(u.name)+'</td><td>'+fdate(u.created_at)+'</td>'+
+        '<td><span class="pill '+(u.is_premium?'premium':'free')+'">'+(u.is_premium?'premium':'free')+'</span></td>'+
+        '<td class="num">'+(u.members||0)+'</td><td class="num">'+(u.items||0)+'</td>'+
+        '<td class="num">'+(u.packed||0)+'</td><td class="num">'+(u.readiness==null?'–':u.readiness+'%')+'</td></tr>'
+    }).join('') : '<tr><td colspan="7" style="color:var(--text3)">目前沒有家庭</td></tr>')+
+    '</tbody></table></div>'
+  v.innerHTML = html
+}
+
+// 從 latest_date 隔天算到昨天（今天的行情隔天早上才進），扣掉已知休市日，
+// 剩下的才是真的缺口。沒有 004 的休市紀錄時退回舊的「超過 3 天就示警」。
+function dataGap(latestDate, restDates){
+  if(!latestDate) return null
+  var rest={}; (restDates||[]).forEach(function(d){ rest[String(d).slice(0,10)]=1 })
+  var cur=new Date(latestDate+'T00:00:00Z')
+  var end=new Date(Date.now()-86400e3)
+  cur.setUTCDate(cur.getUTCDate()+1)
+  var missing=[]
+  while(cur<=end && missing.length<40){
+    var k=cur.toISOString().slice(0,10)
+    if(!rest[k]) missing.push(k)
+    cur.setUTCDate(cur.getUTCDate()+1)
+  }
+  return missing
+}
+
+// 菜蟲：活躍、留存、行為（005_engagement.sql 的 app_engagement）
+function caichongEngagementHTML(st){
+  if(st.engErr==='no_sql')
+    return '<div class="setup"><b>留存／行為追蹤尚未啟用。</b>到 <a href="https://supabase.com/dashboard/project/xbmknfwetpndrjxegdfg/sql/new" target="_blank">SQL Editor</a> 貼上執行：<br><code>~/Documents/caichong/supabase/migrations/005_engagement.sql</code><br>並出貨含新版追蹤的 App（OTA）後才會開始累積。</div>'
+  if(st.engErr) return '<div class="setup">留存資料讀取失敗：'+esc(st.engErr)+'</div>'
+  var e=st.eng; if(!e) return ''
+  var html = '<div class="sect">活躍（每台裝置一天算一次，台灣時間）</div>' + cardsHTML([
+    ['今日 DAU', fmt(e.dau), '昨日 '+fmt(e.dau_yesterday)],
+    ['WAU（7 天）', fmt(e.wau)],
+    ['MAU（30 天）', fmt(e.mau)],
+    ['黏著度 DAU/MAU', pct(e.dau_yesterday, e.mau), '用昨日（今日還沒過完）；菜價類 15–25% 算健康'],
+    ['30 天平均開啟天數', e.avg_days_active_30d==null?'–':e.avg_days_active_30d+' 天', '每台活躍裝置']
+  ])
+  var d=e.daily||[], mx=Math.max.apply(null, d.map(function(x){return x.active}).concat([1]))
+  html += '<div class="dau"><div class="cols">' + d.map(function(x){
+      var old=x.active-x.new
+      return '<div class="col" title="'+esc(x.day)+'　活躍 '+x.active+'（新 '+x.new+'）">'+
+        '<i style="height:'+(old/mx*100)+'%"></i><i class="nw" style="height:'+(x.new/mx*100)+'%"></i></div>'
+    }).join('') + '</div><div class="axis"><span>'+esc((d[0]||{}).day||'')+'</span><span>近 30 天日活（深色＝當天新裝置）</span><span>'+esc((d[d.length-1]||{}).day||'')+'</span></div></div>'
+
+  var o=e.overall||{}
+  function rate(n,el){ return el ? pct(n,el) : '–' }
+  function cls(n,el,lo,hi){ if(!el) return ''; var r=n/el*100; return r<lo?'lo':r>=hi?'hi':'mid' }
+  html += '<div class="sect">留存（依首次開啟週分 cohort）</div>' + cardsHTML([
+    ['次日留存 D1', rate(o.d1,o.elig_d1), fmt(o.d1)+' / '+fmt(o.elig_d1)+' 台；工具類常見 25–35%'],
+    ['首週回訪 W1', rate(o.w1,o.elig_w1), '第 1–7 天內再開過；'+fmt(o.w1)+' / '+fmt(o.elig_w1)],
+    ['30 日留存 D30', rate(o.d30,o.elig_d30), '第 23–30 天仍有開；'+fmt(o.d30)+' / '+fmt(o.elig_d30)]
+  ])
+  var co=e.cohorts||[]
+  html += '<div class="tbl-wrap" style="margin-bottom:22px"><table><thead><tr><th>首次開啟週</th><th style="text-align:right">新裝置</th>'+
+    '<th style="text-align:right">D1</th><th style="text-align:right">W1</th><th style="text-align:right">D30</th></tr></thead><tbody>'+
+    (co.length ? co.map(function(c){
+      return '<tr><td class="main">'+esc(c.wk)+' 起</td><td class="num">'+fmt(c.size)+'</td>'+
+        '<td class="num '+cls(c.d1,c.elig_d1,20,35)+'">'+rate(c.d1,c.elig_d1)+'</td>'+
+        '<td class="num '+cls(c.w1,c.elig_w1,30,50)+'">'+rate(c.w1,c.elig_w1)+'</td>'+
+        '<td class="num '+cls(c.d30,c.elig_d30,8,15)+'">'+rate(c.d30,c.elig_d30)+'</td></tr>'
+    }).join('') : '<tr><td colspan="5" style="color:var(--text3)">還沒有資料（等新版 App 出貨）</td></tr>')+
+    '</tbody></table></div>'
+
+  var ev=e.events||{}, dv=function(k){ return ((ev[k]||{}).devices)||0 }
+  html += '<div class="sect">使用行為漏斗（去重裝置，累計）</div>' + funnelHTML([
+    ['活躍裝置（30 天）', e.mau],
+    ['點開品項', dv('crop_open')],
+    ['加過收藏', dv('favorite_add')],
+    ['看到付費牆', dv('paywall_view')],
+    ['按下購買', dv('purchase_start')],
+    ['購買成功', dv('purchase_success')]
+  ])
+  html += cardsHTML([
+    ['收藏額滿被擋', fmt(dv('favorite_limit_hit')), '免費版第 4 項；付費動機'],
+    ['切換市場', fmt(dv('market_switch')), 'GPS 定位不準的訊號'],
+    ['訂閱低價通知', fmt(dv('alert_subscribe'))],
+    ['購買失敗／取消', fmt(dv('purchase_fail'))]
+  ])
+  function chips(obj, label){
+    var k=Object.keys(obj||{}).sort(function(a,b){return obj[b]-obj[a]})
+    return k.length ? '<div class="chips">'+k.map(function(x){ return '<span class="chip">'+esc(label(x))+' <b>'+fmt(obj[x])+'</b></span>' }).join('')+'</div>' : ''
+  }
+  var TAB={Home:'行情',Favorites:'收藏',BestDeals:'最划算',Settings:'設定'}
+  var SRC={favorite_limit:'收藏額滿',settings:'設定頁',crop_chart:'走勢圖鎖',crop_alert:'通知鎖'}
+  var t=chips(e.tabs_30d, function(x){return '分頁：'+(TAB[x]||x)})
+  var p=chips(e.paywall_sources_30d, function(x){return '付費牆來源：'+(SRC[x]||x)})
+  var vv=chips(e.versions, function(x){return 'v'+x})
+  if(t||p||vv) html += '<div class="sect">流量分布（30 天）</div>' + t + p + vv
+  return html
+}
+
+// 菜蟲（裝置 + 提醒 + 資料健康度）
+function renderCaichong(v, st){
+  var s=st.stats
+  var hasRestData = s.rest_dates_14d !== undefined
+  var missing = hasRestData ? dataGap(s.latest_date, s.rest_dates_14d) : null
+  // 有 004：只有「非休市卻沒資料」才算異常。沒有 004：沿用舊的天數判斷。
+  var stale = hasRestData
+    ? (missing && missing.length > 0)
+    : (s.latest_date && (Date.now() - new Date(s.latest_date).getTime() > 3*86400e3))
+  var dataNote = !s.latest_date ? '尚無資料'
+    : stale ? '⚠️ 缺 '+missing.length+' 天（'+missing.slice(0,4).join('、')+(missing.length>4?'…':'')+'），檢查爬蟲'
+    : hasRestData ? '正常（其後為休市日）'
+    : '資料正常進檔'
+  var html = '<div class="sect">裝置（≈ 安裝量，新版 App 上架後開始累積）</div>' + cardsHTML([
+    ['裝置總數', fmt(s.devices_total)],
+    ['近 7 天新裝置', '+'+fmt(s.devices_new_7d), '近 30 天 +'+fmt(s.devices_new_30d)],
+    ['近 7 天有開啟', fmt(s.devices_seen_7d), '近 30 天 '+fmt(s.devices_seen_30d)],
+    ['7 天活躍率', pct(s.devices_seen_7d, s.devices_total)]
+  ])
+  html += caichongEngagementHTML(st)
+  var crops = s.top_alert_crops||{}
+  html += '<div class="sect">到價提醒</div>' + cardsHTML([
+    ['訂閱總數', fmt(s.alerts_total), '近 7 天 +'+fmt(s.alerts_new_7d)],
+    ['有訂閱的裝置', fmt(s.alert_devices)]
+  ])
+  var ck = Object.keys(crops).sort(function(a,b){return crops[b]-crops[a]})
+  if(ck.length){
+    html += '<div class="chips">' + ck.map(function(k){
+      return '<span class="chip">'+esc(k)+' <b>'+fmt(crops[k])+'</b></span>'
+    }).join('') + '</div>'
+  }
+  // 爬蟲心跳：直接回答「到底有沒有跑」，不必翻 GitHub Actions
+  var lc = s.last_crawl
+  var crawlStale = lc && lc.ran_at && (Date.now() - new Date(lc.ran_at).getTime() > 30*3600e3)
+  html += '<div class="sect">爬蟲</div>' + cardsHTML(
+    !hasRestData
+      ? [['爬蟲心跳', '未啟用', '到 Supabase 跑 004_market_rest_days.sql']]
+      : [
+          ['最後執行', lc?fdate(lc.ran_at):'–',
+            !lc ? '尚未回報（004 剛裝好？）' : crawlStale ? '⚠️ 超過 30 小時沒跑' : (lc.ok?'成功':'⚠️ 失敗')],
+          ['上次寫入行情', lc?fmt(lc.written):'–', lc?'抓取 '+fmt(lc.fetched)+' 筆':''],
+          ['上次認列休市', lc?fmt(lc.rest_markets):'–', '市場×日期'],
+          ['近 7 天執行次數', fmt(s.crawl_runs_7d)]
+        ]
+  ) + (lc && lc.note ? '<div class="hint">上次錯誤：'+esc(lc.note)+'</div>' : '')
+
+  html += '<div class="sect">行情資料健康度</div>' + cardsHTML([
+    ['行情總筆數', fmt(s.total_rows)],
+    ['最新資料日', esc(s.latest_date), dataNote],
+    ['近 7 天進檔', fmt(s.rows_7d), '近 30 天 '+fmt(s.rows_30d)],
+    ['作物數', fmt(s.distinct_crops)],
+    ['市場數', fmt(s.distinct_markets)]
+  ])
+  var rd = s.rest_dates_14d||[]
+  if(rd.length){
+    html += '<div class="chips">' + rd.map(function(d){
+      return '<span class="chip">休市 <b>'+esc(String(d).slice(5,10))+'</b></span>'
+    }).join('') + '</div>'
+  }
+  var cats = s.by_category||{}
+  html += '<div class="sect">分類分布</div><div class="chips">' +
+    Object.keys(cats).sort(function(a,b){return cats[b]-cats[a]}).map(function(k){
+      return '<span class="chip">'+esc(k)+' <b>'+fmt(cats[k])+'</b></span>'
+    }).join('') + '</div>'
+  var rows = st.days||[]
+  html += '<div class="sect">近 14 天每日進檔</div><div class="tbl-wrap"><table><thead><tr>'+
+    '<th>日期</th><th style="text-align:right">筆數</th><th style="text-align:right">作物</th><th style="text-align:right">市場</th></tr></thead><tbody>'+
+    (rows.length ? rows.map(function(d){
+      return '<tr><td class="main">'+esc(d.trade_date)+'</td><td class="num">'+fmt(d.rows)+'</td>'+
+        '<td class="num">'+fmt(d.crops)+'</td><td class="num">'+fmt(d.markets)+'</td></tr>'
+    }).join('') : '<tr><td colspan="4" style="color:var(--text3)">近 14 天沒有資料</td></tr>')+
+    '</tbody></table></div>'
+  html += '<div class="hint">菜蟲沒有用戶帳號：裝置／留存／行為都來自匿名裝置 ID（換機或刪掉重裝會算新裝置）。曝光、產品頁瀏覽、下載轉換率只有 App Store Connect 的「App 分析」看得到。</div>'
+  v.innerHTML = html
+}
+
+// 明目
+function renderMingmu(v){
+  v.innerHTML = '<div class="setup">明目是<b>純本地 App</b>：最愛、瀏覽紀錄、家人連結全部存在裝置的 AsyncStorage，'+
+    '沒有雲端資料庫，所以這裡沒有可看的後台數據。<br><br>要看的數字在別的地方：<br>'+
+    '・下載量／留存 → App Store Connect<br>'+
+    '・IAP 營收 → App Store Connect 或 RevenueCat<br><br>'+
+    '若之後想看使用行為，需要在 App 裡加匿名事件上報（例如 device ping 表），再回來擴充這頁。</div>'
+}
+
+// 純本地 App（無後端）：說明＋快速連結
+function renderLocal(v, app){
+  v.innerHTML = '<div class="setup">'+app.body+'</div>'+
+    (app.links ? '<div class="sect">快速連結</div><div class="chips">'+app.links.map(function(l){
+      return '<a class="chip" href="'+l[1]+'" target="_blank" rel="noopener" style="text-decoration:none">'+esc(l[0])+' ↗</a>'
+    }).join('')+'</div>' : '')
+}
+
+// 已有密語 → 直接載入
+if(SECRET){
+  document.getElementById('gate').style.display='none'
+  document.getElementById('dash').style.display='block'
+  loadAll()
+}
+</script>
+</body>
+</html>
