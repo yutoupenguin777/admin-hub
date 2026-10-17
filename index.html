@@ -165,7 +165,10 @@ var APPS = [
            ['App Store Connect','https://appstoreconnect.apple.com/apps/6817854015/distribution'],
            ['App 分析','https://appstoreconnect.apple.com/analytics/app/d30/6817854015/overview'],
            ['銷售和趨勢','https://appstoreconnect.apple.com/trends'],
-           ['AdMob','https://admob.google.com/v2/apps/3792558237/overview']] },
+           ['AdMob','https://admob.google.com/v2/apps/3792558237/overview']],
+    admob:{ app:'ca-app-pub-4194831071276108~3792558237',
+      units:[['底部橫幅','ca-app-pub-4194831071276108/7724812810'],['插頁（每 3 轉）','ca-app-pub-4194831071276108/6411731148']],
+      note:'1.0 於 2026-10-15 上線；廣告要等 AdMob 連結 App Store（id6817854015）並通過審查才會放送。買斷用戶不顯示廣告。' } },
   { id:'shachiku', name:'社畜救星', local:true, ascId:'6816712272',
     ov:'勞保低報健檢 · 全免費＋廣告（僅台灣）<br>無後端，看 App Store Connect／AdMob',
     body:'社畜救星是<b>純本地 App</b>：健檢紀錄、發薪提醒、行動方案勾選都存在裝置上，計算全部在本機完成，'+
@@ -177,7 +180,10 @@ var APPS = [
     links:[['App Store 頁面','https://apps.apple.com/tw/app/id6816712272'],
            ['App Store Connect','https://appstoreconnect.apple.com/apps/6816712272/distribution'],
            ['App 分析','https://appstoreconnect.apple.com/analytics/app/d30/6816712272/overview'],
-           ['AdMob','https://admob.google.com/v2/apps/3306012076/overview']] }
+           ['AdMob','https://admob.google.com/v2/apps/3306012076/overview']],
+    admob:{ app:'ca-app-pub-4194831071276108~3306012076',
+      units:[['橫幅（首頁＋結果頁）','ca-app-pub-4194831071276108/9376596406']],
+      note:'2026-10-07 已連結 App Store 並通過 AdMob 審查，廣告應正常放送。非個人化廣告、無 ATT。' } }
 ]
 
 var SECRET_KEY = 'adminhub_secret'
@@ -708,7 +714,11 @@ function renderLocal(v, app){
   v.innerHTML = '<div class="setup">'+app.body+'</div>'+
     (app.links ? '<div class="sect">快速連結</div><div class="chips">'+app.links.map(function(l){
       return '<a class="chip" href="'+l[1]+'" target="_blank" rel="noopener" style="text-decoration:none">'+esc(l[0])+' ↗</a>'
-    }).join('')+'</div>' : '')
+    }).join('')+'</div>' : '') +
+    (app.admob ? '<div class="sect">AdMob</div><div class="tbl-wrap"><table style="min-width:0"><tbody>'+
+      '<tr><th>App ID</th><td class="main"><code>'+esc(app.admob.app)+'</code></td></tr>'+
+      app.admob.units.map(function(u){ return '<tr><th>'+esc(u[0])+'</th><td class="main"><code>'+esc(u[1])+'</code></td></tr>' }).join('')+
+      '</tbody></table></div><div class="hint">'+esc(app.admob.note)+'<br>收益數字要在 AdMob 後台看：這頁是靜態網頁，沒有 AdMob API 授權，抓不到即時收益。</div>' : '')
 }
 
 // 已有密語 → 直接載入
