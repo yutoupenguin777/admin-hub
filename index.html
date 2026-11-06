@@ -255,12 +255,19 @@ async function loadApp(app, secret){
   S[app.id] = st
 }
 
-// ── 作品頁 sukalab.pages.dev 導流（資料存在菜蟲專案的 sukalab_clicks，SQL：caichong/supabase/migrations/009_sukalab_clicks.sql）──
+// ── 作品頁 sukalab.pages.dev 導流（獨立 Supabase 專案 sukalab，SQL：~/Documents/yutopenguin-site/supabase/sukalab.sql）──
+var SUKA_DB = { url:'https://zqkwcfihgeqhczhgmdkf.supabase.co', key:'sb_publishable_NMyVbmEWfX1rb3RIl6HLRg_Wj4GorRE' }
 var SUKA = null
 async function loadSuka(secret){
-  var host = APPS.find(function(a){ return a.id==='caichong' })
-  try{ SUKA = {status:'ok', s: await rpc(host, 'sukalab_click_stats', {p_secret: secret})} }
-  catch(e){ SUKA = {status: e.status===404 ? 'no_sql' : (/unauthorized/i.test(e.message)||e.status===401 ? 'locked' : 'err'), msg: short(e)} }
+  try{ SUKA = {status:'ok', s: await rpc(SUKA_DB, 'sukalab_click_stats', {p_secret: secret})} }
+  catch(e){
+    if(/not configured/i.test(e.message)){
+      // 首次使用：把這組密語綁進去，再讀一次（first-set-wins）
+      try{ await rpc(SUKA_DB, 'stats_set_secret', {p_secret: secret}); SUKA = {status:'ok', s: await rpc(SUKA_DB, 'sukalab_click_stats', {p_secret: secret})}; return }
+      catch(e2){ SUKA = {status:'err', msg: short(e2)}; return }
+    }
+    SUKA = {status: e.net ? 'down' : e.status===404 ? 'no_sql' : (/unauthorized/i.test(e.message)||e.status===401 ? 'locked' : 'err'), msg: short(e)}
+  }
 }
 function sukaApp(id){
   if(!SUKA || SUKA.status!=='ok') return null
@@ -269,7 +276,9 @@ function sukaApp(id){
 function sukaBlockHTML(id){
   if(!SUKA) return ''
   var head = '<div class="sect">作品頁導流（sukalab.pages.dev → App Store）</div>'
-  if(SUKA.status==='no_sql') return head + '<div class="setup">導流計數尚未啟用：到菜蟲專案 <a href="https://supabase.com/dashboard/project/xbmknfwetpndrjxegdfg/sql/new" target="_blank">SQL Editor</a> 貼上執行 <code>~/Documents/caichong/supabase/migrations/009_sukalab_clicks.sql</code>。</div>'
+  if(SUKA.status==='no_sql') return head + '<div class="setup">導流計數尚未啟用：到 sukalab 專案 <a href="https://supabase.com/dashboard/project/zqkwcfihgeqhczhgmdkf/sql/new" target="_blank">SQL Editor</a> 貼上執行 <code>~/Documents/yutopenguin-site/supabase/sukalab.sql</code>。</div>'
+  if(SUKA.status==='locked') return head + '<div class="setup">sukalab 專案的密語跟這裡不同。</div>'
+  if(SUKA.status==='down') return head + '<div class="setup">sukalab 專案無回應（可能被暫停），到 <a href="https://supabase.com/dashboard/project/zqkwcfihgeqhczhgmdkf" target="_blank">Supabase</a> 按 Restore。</div>'
   if(SUKA.status!=='ok') return head + '<div class="setup">導流數據讀取失敗：'+esc(SUKA.msg)+'</div>'
   var r = sukaApp(id)
   return head + cardsHTML([
