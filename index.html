@@ -169,6 +169,13 @@ var APPS = [
     admob:{ app:'ca-app-pub-4194831071276108~3792558237',
       units:[['底部橫幅','ca-app-pub-4194831071276108/7724812810'],['插頁（每 3 轉）','ca-app-pub-4194831071276108/6411731148']],
       note:'1.0 於 2026-10-15 上線；廣告要等 AdMob 連結 App Store（id6817854015）並通過審查才會放送。買斷用戶不顯示廣告。' } },
+  { id:'flyha', name:'Flyha', local:true, ascId:'6764045733',
+    ov:'接力畫畫漂流瓶 · Supabase 後端（Tokyo）<br>尚未接 admin-hub 數據 RPC',
+    body:'Flyha 有 Supabase 後端（<code>vuzmklwygaoazapqevyt</code>），但還沒裝 admin-hub 的 <code>app_stats</code> 密語 RPC，所以這裡暫時只有作品頁導流數據。<br><br>'+
+      '・下載量／留存 → App Store Connect「App 分析」',
+    links:[['App Store 頁面','https://apps.apple.com/app/id6764045733'],
+           ['App Store Connect','https://appstoreconnect.apple.com/apps/6764045733/distribution'],
+           ['App 分析','https://appstoreconnect.apple.com/analytics/app/d30/6764045733/overview']] },
   { id:'shachiku', name:'社畜救星', local:true, ascId:'6816712272',
     ov:'勞保低報健檢 · 全免費＋廣告（僅台灣）<br>無後端，看 App Store Connect／AdMob',
     body:'社畜救星是<b>純本地 App</b>：健檢紀錄、發薪提醒、行動方案勾選都存在裝置上，計算全部在本機完成，'+
@@ -248,12 +255,58 @@ async function loadApp(app, secret){
   S[app.id] = st
 }
 
+// ── 作品頁 sukalab.pages.dev 導流（資料存在菜蟲專案的 sukalab_clicks，SQL：caichong/supabase/migrations/009_sukalab_clicks.sql）──
+var SUKA = null
+async function loadSuka(secret){
+  var host = APPS.find(function(a){ return a.id==='caichong' })
+  try{ SUKA = {status:'ok', s: await rpc(host, 'sukalab_click_stats', {p_secret: secret})} }
+  catch(e){ SUKA = {status: e.status===404 ? 'no_sql' : (/unauthorized/i.test(e.message)||e.status===401 ? 'locked' : 'err'), msg: short(e)} }
+}
+function sukaApp(id){
+  if(!SUKA || SUKA.status!=='ok') return null
+  return (SUKA.s.by_app||[]).find(function(r){ return r.app===id }) || {app:id,total:0,d7:0,threads:0,en:0}
+}
+function sukaBlockHTML(id){
+  if(!SUKA) return ''
+  var head = '<div class="sect">作品頁導流（sukalab.pages.dev → App Store）</div>'
+  if(SUKA.status==='no_sql') return head + '<div class="setup">導流計數尚未啟用：到菜蟲專案 <a href="https://supabase.com/dashboard/project/xbmknfwetpndrjxegdfg/sql/new" target="_blank">SQL Editor</a> 貼上執行 <code>~/Documents/caichong/supabase/migrations/009_sukalab_clicks.sql</code>。</div>'
+  if(SUKA.status!=='ok') return head + '<div class="setup">導流數據讀取失敗：'+esc(SUKA.msg)+'</div>'
+  var r = sukaApp(id)
+  return head + cardsHTML([
+    ['點擊下載鈕（累計）', fmt(r.total), '作品頁上點了這個 App 的 App Store 按鈕'],
+    ['近 7 天', fmt(r.d7), ''],
+    ['來自 Threads', fmt(r.threads), '佔 '+pct(r.threads, r.total)],
+    ['英文版點擊', fmt(r.en), '佔 '+pct(r.en, r.total)]
+  ]) + '<div class="hint">點擊數不等於下載數：點進 App Store 後有沒有下載，要看 App Store Connect。</div>'
+}
+function renderSuka(v){
+  var head = '<div class="sect">作品頁 sukalab.pages.dev</div>'
+  if(!SUKA || SUKA.status!=='ok'){ v.innerHTML = sukaBlockHTML('') || '<div class="setup">載入中…</div>'; return }
+  var s = SUKA.s, src = s.by_src||{}, lang = s.by_lang||{}
+  var html = head + cardsHTML([
+    ['造訪（不重複工作階段）', fmt(s.visits), '近 7 天 '+fmt(s.visits_7d)],
+    ['App 下載鈕點擊', fmt(s.clicks), '近 7 天 '+fmt(s.clicks_7d)+'｜今天 '+fmt(s.clicks_1d)],
+    ['點擊率', pct(s.clicks, s.visits), '點擊 ÷ 造訪'],
+    ['來自 Threads 的造訪', fmt(src.threads||0), '佔 '+pct(src.threads||0, s.visits)]
+  ])
+  html += '<div class="sect">造訪來源</div>' + funnelHTML(Object.keys(src).sort(function(a,b){return src[b]-src[a]}).map(function(k){
+    return [({threads:'Threads',instagram:'Instagram',facebook:'Facebook',x:'X',google:'Google',direct:'直接開啟（含 App 內瀏覽器）',other:'其他'})[k]||k, src[k]] }))
+  html += '<div class="sect">各 App 點擊</div>' + funnelHTML((s.by_app||[]).map(function(r){
+    var a = APPS.find(function(x){return x.id===r.app})
+    return [(r.app==='threads' ? '追蹤 Threads 按鈕' : (a ? a.name : r.app)) + '（7 天 '+fmt(r.d7)+'）', r.total] }))
+  html += '<div class="sect">語言</div>' + cardsHTML([['中文版造訪', fmt(lang.zh||0), ''], ['英文版造訪', fmt(lang.en||0), '']])
+  var d = s.daily||[]
+  if(d.length) html += '<div class="sect">近 30 天（每日造訪／點擊）</div>' + funnelHTML(d.slice(-14).reverse().map(function(x){ return [x.d+'　點擊 '+fmt(x.clicks), x.visits] }))
+  html += '<div class="hint">造訪以瀏覽器工作階段去重；來源靠 referrer 判斷，Threads App 內建瀏覽器有時不帶 referrer，會被算進「直接開啟」。想精準分，自介連結可改成 <code>sukalab.pages.dev/?src=threads</code>。</div>'
+  v.innerHTML = html
+}
+
 function short(e){ var m=(e&&e.message)||''; try{m=JSON.parse(m).message||m}catch(x){}; return m.slice(0,120) }
 
 // ── 載入全部 ─────────────────────────────────────────────
 async function loadAll(){
   document.getElementById('stamp').textContent = '載入中…'
-  await Promise.all(APPS.map(function(a){ return loadApp(a, SECRET) }))
+  await Promise.all(APPS.map(function(a){ return loadApp(a, SECRET) }).concat([loadSuka(SECRET)]))
   document.getElementById('stamp').textContent = '更新於 ' + new Date().toLocaleString('zh-TW')
   renderTabs(); render()
 }
@@ -331,10 +384,13 @@ function setupHTML(app, st){
 
 // ── Tabs ─────────────────────────────────────────────────
 function renderTabs(){
-  var t = [{id:'overview',name:'總覽'}].concat(APPS)
+  var t = [{id:'overview',name:'總覽'},{id:'sukalab',name:'作品頁導流'}].concat(APPS)
   document.getElementById('tabs').innerHTML = t.map(function(a){
     var dot=''
-    if(a.id!=='overview'){
+    if(a.id==='sukalab'){
+      var c = !SUKA?'':({ok:'ok',no_sql:'warn'}[SUKA.status]||'bad')
+      dot = '<span class="dot '+c+'"></span>'
+    } else if(a.id!=='overview'){
       var st=S[a.id], cls = !st?'':({ok:'ok',na:'',no_sql:'warn',locked:'bad',err:'bad',down:'bad'}[st.status]||'')
       dot = '<span class="dot '+cls+'"></span>'
     }
@@ -347,6 +403,11 @@ function go(id){ CUR=id; renderTabs(); render() }
 function render(){
   var v = document.getElementById('view')
   if(CUR==='overview') return renderOverview(v)
+  if(CUR==='sukalab') return renderSuka(v)
+  renderApp(v)
+  v.insertAdjacentHTML('afterbegin', sukaBlockHTML(CUR))
+}
+function renderApp(v){
   var app = APPS.find(function(a){return a.id===CUR})
   var st = S[CUR] || {}
   if(app.local) return app.body ? renderLocal(v, app) : renderMingmu(v)
@@ -372,6 +433,8 @@ function renderOverview(v){
     if(a.id==='caichong'){ big=fmt(s.total_rows); unit='筆行情'
       lines='最新資料 <b>'+esc(s.latest_date)+'</b> ｜ 7 天進 <b>'+fmt(s.rows_7d)+'</b> 筆<br>裝置 <b>'+fmt(s.devices_total)+'</b> ｜ 提醒訂閱 <b>'+fmt(s.alerts_total)+'</b>' }
     if(a.local){ big='—'; unit=''; lines=a.ov }
+    var sr = sukaApp(a.id)
+    if(sr) lines += '<br>作品頁點擊 <b>'+fmt(sr.total)+'</b>（7 天 '+fmt(sr.d7)+'｜Threads '+fmt(sr.threads)+'）'
     html += '<div class="ovcard" onclick="go(\''+a.id+'\')">'+
       '<div class="name">'+a.name+statusPill(st)+'</div>'+
       '<div class="big">'+big+'<small>'+unit+'</small></div>'+
