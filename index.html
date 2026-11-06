@@ -215,7 +215,9 @@ async function rpc(app, fn, args){
     var t=''; try{t=await res.text()}catch(e){}
     var err=new Error(t||('HTTP '+res.status)); err.status=res.status; throw err
   }
-  return res.json()
+  // void 函式（例如 stats_set_secret）回 204 空內容，直接 res.json() 會丟「Unexpected end of JSON input」
+  var body = await res.text()
+  return body ? JSON.parse(body) : null
 }
 
 async function loadApp(app, secret){
